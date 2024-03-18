@@ -15,7 +15,9 @@ new_icon=pygame.image.load("Data\i.png")
 pygame.display.set_icon(new_icon)
 
 bg_img = pygame.image.load('Data/sprites/background/3.png')
+
 tile_size = 40
+game_over=0
 
 
 
@@ -105,6 +107,10 @@ class Player():
 					elif self.vel_y >= 0:
 						dy = tile[1].top - self.rect.bottom
 						self.vel_y = 0
+			#check  for collition with enemies
+			if pygame.sprite.spritecollide(self,slime_group,False):
+				game_over=-1;		
+
 
 			#update player coordinates
 			self.rect.x+=dx
@@ -228,6 +234,7 @@ while run:
 
 	slime_group.update()
 	lava_group.draw(win)
+	
 	slime_group.draw(win)
 	player.update()
 	
