@@ -1,8 +1,14 @@
 
 import pygame
 from pygame.locals import *
+from pygame import mixer
+import pickle
+from os import path
 
 
+
+pygame.mixer.pre_init(44100,-16,2,512)
+mixer.init()
 pygame.init()
 
 W,H=800,800
@@ -14,7 +20,19 @@ vel=5
 new_icon=pygame.image.load("Data\i.png")
 pygame.display.set_icon(new_icon)
 
-bg_img = pygame.image.load('Data/sprites/background/1.png')
+#load sounds
+pygame.mixer.music.load('Data/sound/game.mp3')
+pygame.mixer.music.play(-1, 0.0, 5000)
+coin_fx = pygame.mixer.Sound('Data/sound/coin.wav')
+coin_fx.set_volume(0.5)
+jump_fx = pygame.mixer.Sound('Data/sound/jump.wav')
+jump_fx.set_volume(0.5)
+game_over_fx = pygame.mixer.Sound('Data/sound/Die.wav')
+game_over_fx.set_volume(0.5)
+level_won_fx=pygame.mixer.Sound('Data/sound/game_won.wav')
+level_won_fx.set_volume(1)
+
+bg_img = pygame.image.load('Data/sprites/background/2.png')
 restart_img = pygame.image.load('Data/sprites/butons/restart.png')
 start_img = pygame.image.load('Data/sprites/butons/start.png')
 exit_img = pygame.image.load('Data/sprites/butons/exit.png')
@@ -24,11 +42,41 @@ char2_img=pygame.image.load('Data/sprites/Characters/Char2/standing.png')
 char3_img=pygame.image.load('Data/sprites/Characters/Char3/standing.png')
 char4_img=pygame.image.load('Data/sprites/Characters/Char4/standing.png')
 
+font_score=pygame.font.SysFont('Pokemon GB',30 )
+font=pygame.font.SysFont('Bauhaus 93',70)
+font_menu=pygame.font.SysFont('lucidasanstypewriterregular',40 )
+black=(00,00,00)
+blue=(0,0,255)
+red=(255,0,0)
 
 tile_size = 40
 game_over=0
 main_menu=True
 Character_menu=True
+level=1
+max_levels = 7
+score=0
+
+
+def draw_text(text,font,text_col,x,y):
+	img=font.render(text,True,text_col)
+	win.blit(img,(x,y))
+
+
+def reset_level(level):
+	player.reset(100,H-130,n)
+	slime_group.empty()
+	lava_group.empty()
+	exit_group.empty()
+
+	#load in level 
+	if path.exists(f'Data/levels/level{level}_data'):
+		pickle_in = open(f'Data/levels/level{level}_data', 'rb')
+		world_data = pickle.load(pickle_in)
+
+	world = World(world_data)
+
+	return world
 
 
 class Char():
@@ -110,6 +158,7 @@ class Player():
 				#get keypresses
 				key = pygame.key.get_pressed()
 				if key[pygame.K_UP] and self.jumped == False and self.in_air == False:
+					jump_fx.play()
 					self.vel_y = -3*vel
 					self.jumped = True
 				if key[pygame.K_UP] == False:
@@ -154,11 +203,11 @@ class Player():
 						dx = 0
 					#check for collision in y direction
 					if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
-					#check if below the ground i.e. jumping
+					#check if below the ground : jumping
 						if self.vel_y < 0:
 							dy = tile[1].bottom - self.rect.top
 							self.vel_y = 0
-					#check if above the ground i.e. falling
+					#check if above the ground : falling
 						elif self.vel_y >= 0:
 							dy = tile[1].top - self.rect.bottom
 							self.vel_y = 0
@@ -167,11 +216,17 @@ class Player():
 
 				#check  for collition with enemies
 				if pygame.sprite.spritecollide(self,slime_group,False):
+					game_over_fx.play()
 					game_over=-1;		
 
 				if pygame.sprite.spritecollide(self,lava_group ,False):
+					game_over_fx.play()
 					game_over=-1;	
-
+				
+				if pygame.sprite.spritecollide(self,exit_group ,False):
+					level_won_fx.play()
+					game_over=+1;	
+				
 				#update player coordinates
 				self.rect.x+=dx
 				self.rect.y+=dy
@@ -215,8 +270,8 @@ class World():
 		self.tile_list = []
 
 		#load images
-		dirt_img = pygame.image.load('Data\sprites\Block\dirt2.png')
-		grass_img = pygame.image.load('Data\sprites\Block\green2.png')
+		dirt_img = pygame.image.load('Data\sprites\Block\dirt.png')
+		grass_img = pygame.image.load('Data\sprites\Block\green.png')
 
 		row_count = 0
 		for row in data:
@@ -242,6 +297,12 @@ class World():
 				if tile == 6:
 					lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 2))
 					lava_group.add(lava)
+				if tile == 7:
+					coin = Coin(col_count * tile_size+ (tile_size // 2), row_count * tile_size + (tile_size // 2))
+					coin_group.add(coin)
+				if tile == 8:
+					exit = Exit(col_count * tile_size, row_count * tile_size - (tile_size // 2) )
+					exit_group.add(exit)
 				col_count += 1
 			row_count += 1
 
@@ -277,47 +338,46 @@ class Lava(pygame.sprite.Sprite):
 		self.rect.y = y
 
 
+class Exit(pygame.sprite.Sprite):
+	def __init__(self, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		img = pygame.image.load('Data/sprites/exit/1.png')
+		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+		self.rect = self.image.get_rect()
+		self.rect.x = x
+		self.rect.y = y
 
 
-world_data = [
-[1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 8, 1], 
-[1, 0, 0, 0, 0, 2, 0, 0, 0, 0, 0, 7, 0, 0, 0, 0, 0, 2, 2, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 0, 7, 0, 5, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 5, 0, 0, 0, 2, 2, 0, 0, 0, 0, 0, 1], 
-[1, 7, 0, 0, 2, 2, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 0, 7, 0, 0, 0, 0, 1], 
-[1, 0, 2, 0, 0, 7, 0, 7, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 0, 0, 2, 0, 0, 4, 0, 0, 0, 0, 3, 0, 0, 3, 0, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 2, 2, 2, 2, 2, 2, 2, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 7, 0, 7, 0, 0, 0, 0, 2, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1], 
-[1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 0, 2, 2, 2, 2, 2, 1], 
-[1, 0, 0, 0, 0, 0, 2, 2, 2, 6, 6, 6, 6, 6, 1, 1, 1, 1, 1, 1], 
-[1, 0, 0, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-[1, 0, 0, 0, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1], 
-[1, 2, 2, 2, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
-]
-
+class Coin(pygame.sprite.Sprite):
+	def __init__(self, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		img = pygame.image.load('Data/sprites/coin/1.png')
+		self.image = pygame.transform.scale(img, (tile_size//2, tile_size // 2))
+		self.rect = self.image.get_rect()
+		self.rect.center = (x,y)
+		
 
 #main
 
 slime_group=pygame.sprite.Group()   
 lava_group = pygame.sprite.Group()
+exit_group = pygame.sprite.Group()
+coin_group = pygame.sprite.Group()
+#load in level 
+if path.exists(f'Data/levels/level{level}_data'):
+	pickle_in = open(f'Data/levels/level{level}_data', 'rb')
+	world_data = pickle.load(pickle_in)
 
 world = World(world_data)
 
-restart_button = Button(W // 2 -10, H // 2 , restart_img)
-start_button = Button(W // 2 - 200, H // 2, start_img)
-exit_button = Button(W // 2 + 60, H // 2, exit_img)
+restart_button = Button(W // 2 -120, H // 2-40 , restart_img)
+start_button = Button(W // 2 - 280, H // 2, start_img)
+exit_button = Button(W // 2 + 40, H // 2, exit_img)
 
-c1 = Char(W // 2 - 300,H // 2 +100, char1_img)
-c2 = Char(W // 2 - 120,H // 2 +95, char2_img)
-c3 = Char(W // 2 + 80,H // 2 +100 , char3_img)
-c4 = Char(W // 2 + 230,H // 2 +100, char4_img)
+c1 = Char(W // 2 - 300,H // 2 +50, char1_img)
+c2 = Char(W // 2 - 120,H // 2 +45, char2_img)
+c3 = Char(W // 2 + 80,H // 2 +50 , char3_img)
+c4 = Char(W // 2 + 230,H // 2 +50, char4_img)
 
 run = True
 n=1
@@ -349,7 +409,7 @@ while run:
 				c4.nc=4
 				n=c4.get_nc()
 				Character_menu=False
-
+			draw_text('Chose your character: ',font_menu,black,W//2-220,H//2-100)
 			player = Player(40,H-120,n)
 
 		else:
@@ -357,18 +417,44 @@ while run:
 
 			if game_over == 0:
 				slime_group.update()
-		
+				if pygame.sprite.spritecollide(player,coin_group,True):
+					coin_fx.play()
+					score+=1
+				draw_text('Score: '+str(score*5),font_score,black,tile_size-10,10)
+
+
 			slime_group.draw(win)
 			lava_group.draw(win)
-
+			coin_group.draw(win)
+			exit_group.draw(win)
+ 
 			game_over = player.update(game_over)
 
 			#if player has died
 			if game_over == -1:
 				if restart_button.draw():
-					player.reset(100, H - 130,n)
+					world_data = []
+					world=reset_level(level)
 					game_over = 0
-
+					score=0
+				draw_text('GAME OVER ',font,red,W//2-180,H//2-200)
+			if game_over==1:
+				level+=1
+				if level<=max_levels:
+					world_data = []
+					world=reset_level(level)
+					game_over = 0
+				else:
+					draw_text('YOU WIN!!',font,blue,W//2-200,H//2-200)
+					if restart_button.draw():
+						level=1
+						world_data=[]
+						world=reset_level[level]
+						game_over=0
+						score=0
+						
+			
+				
 	
 	for event in pygame.event.get():
 		if event.type == pygame.QUIT:
