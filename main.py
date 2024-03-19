@@ -6,21 +6,21 @@ import pickle
 from os import path
 
 
-
+# sound library 
 pygame.mixer.pre_init(44100,-16,2,512)
 mixer.init()
 pygame.init()
 
+#game_over setup
 W,H=800,800
 win = pygame.display.set_mode((W,H))
 pygame.display.set_caption("classic game")
 FPS=60
 clock = pygame.time.Clock()
-vel=5
 new_icon=pygame.image.load("Data\i.png")
 pygame.display.set_icon(new_icon)
 
-#load sounds
+#loading sounds
 pygame.mixer.music.load('Data/sound/game.mp3')
 pygame.mixer.music.play(-1, 0.0, 5000)
 coin_fx = pygame.mixer.Sound('Data/sound/coin.wav')
@@ -32,16 +32,17 @@ game_over_fx.set_volume(0.5)
 level_won_fx=pygame.mixer.Sound('Data/sound/game_won.wav')
 level_won_fx.set_volume(1)
 
+#loading images
 bg_img = pygame.image.load('Data/sprites/background/2.png')
 restart_img = pygame.image.load('Data/sprites/butons/restart.png')
 start_img = pygame.image.load('Data/sprites/butons/start.png')
 exit_img = pygame.image.load('Data/sprites/butons/exit.png')
-
 char1_img=pygame.image.load('Data/sprites/Characters/Char1/standing .png')
 char2_img=pygame.image.load('Data/sprites/Characters/Char2/standing.png')
 char3_img=pygame.image.load('Data/sprites/Characters/Char3/standing.png')
 char4_img=pygame.image.load('Data/sprites/Characters/Char4/standing.png')
 
+#writing setup
 font_score=pygame.font.SysFont('Pokemon GB',30 )
 font=pygame.font.SysFont('Bauhaus 93',70)
 font_menu=pygame.font.SysFont('lucidasanstypewriterregular',40 )
@@ -49,6 +50,7 @@ black=(00,00,00)
 blue=(0,0,255)
 red=(255,0,0)
 
+#game variable
 tile_size = 40
 game_over=0
 main_menu=True
@@ -56,7 +58,9 @@ Character_menu=True
 level=1
 max_levels = 7
 score=0
+speed=5
 
+#functions
 
 def draw_text(text,font,text_col,x,y):
 	img=font.render(text,True,text_col)
@@ -71,7 +75,7 @@ def reset_level(level):
 	coin_group.empty()
 	exit_group.empty()
 
-	#load in level 
+	#loading  level 
 	if path.exists(f'Data/levels/level{level}_data'):
 		pickle_in = open(f'Data/levels/level{level}_data', 'rb')
 		world_data = pickle.load(pickle_in)
@@ -81,6 +85,8 @@ def reset_level(level):
 	return world
 
 
+#classes
+
 class Char():
 	def __init__(self, x, y, image):
 		self.nc=0
@@ -89,6 +95,7 @@ class Char():
 		self.rect.x = x
 		self.rect.y = y
 		self.clicked = False
+
 	def get_nc(self):
 		nc=self.nc
 		return nc
@@ -109,7 +116,7 @@ class Char():
 			self.clicked = False
 
 
-		#draw button
+		#draw char
 		win.blit(self.image, self.rect)
 
 		return action
@@ -162,16 +169,16 @@ class Player():
 				key = pygame.key.get_pressed()
 				if key[pygame.K_UP] and self.jumped == False and self.in_air == False:
 					jump_fx.play()
-					self.vel_y = -3*vel
+					self.vel_y = -3*speed
 					self.jumped = True
 				if key[pygame.K_UP] == False:
 					self.jumped = False
 				if key[pygame.K_LEFT]:
-					dx -= vel
+					dx -= speed
 					self.counter += 1
 					self.direction = -1
 				if key[pygame.K_RIGHT]:
-					dx += vel
+					dx += speed
 					self.counter += 1
 					self.direction = 1
 				if key[pygame.K_LEFT] == False and key[pygame.K_RIGHT] == False:
@@ -270,9 +277,7 @@ class Player():
 		
 			for num in range(1,10):
 				img_right=pygame.image.load(f'Data/sprites/Characters/Char{n}/R{num}.png')
-				#img_right = pygame.transform.scale(img_right, (50,80))
 				img_Left=pygame.transform.flip(img_right, True, False)
-				#img_Left = pygame.transform.scale(img_Left, (50,80))
 				self.images_right.append(img_right)
 				self.images_left.append(img_Left)
 			self.dead_image=pygame.image.load('Data/sprites/Characters/Dead/Dead.png')
@@ -416,7 +421,8 @@ platform_group=pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
-#load in level 
+
+#load  level 
 if path.exists(f'Data/levels/level{level}_data'):
 	pickle_in = open(f'Data/levels/level{level}_data', 'rb')
 	world_data = pickle.load(pickle_in)
@@ -484,7 +490,7 @@ while run:
 			exit_group.draw(win)
  
 			game_over = player.update(game_over)
-
+			
 			#if player has died
 			if game_over == -1:
 				if restart_button.draw():
