@@ -11,7 +11,7 @@ pygame.mixer.pre_init(44100,-16,2,512)
 mixer.init()
 pygame.init()
 
-#game_over setup
+#game setup
 W,H=800,800
 win = pygame.display.set_mode((W,H))
 pygame.display.set_caption("classic game")
@@ -490,7 +490,7 @@ while run:
 			exit_group.draw(win)
  
 			game_over = player.update(game_over)
-			
+
 			#if player has died
 			if game_over == -1:
 				if restart_button.draw():
