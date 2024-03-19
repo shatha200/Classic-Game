@@ -335,7 +335,7 @@ class World():
 			row_count += 1
 
 	def draw(self):
-		for tile in self.tile_list:
+		for tile in self.tile_list:	
 			win.blit(tile[0], tile[1])
 			
 
