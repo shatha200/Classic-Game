@@ -67,6 +67,8 @@ def reset_level(level):
 	player.reset(100,H-130,n)
 	slime_group.empty()
 	lava_group.empty()
+	platform_group.empty()
+	coin_group.empty()
 	exit_group.empty()
 
 	#load in level 
@@ -148,11 +150,12 @@ class Button():
 class Player():
 	def __init__(self, x, y,n):
 		self.reset(x,y,n)
-
+		
 	def update(self,game_over):
 			dx = 0
 			dy = 0
 			walk_cooldown = 5
+			col_thresh = 20
 
 			if game_over==0:
 				#get keypresses
@@ -227,6 +230,25 @@ class Player():
 					level_won_fx.play()
 					game_over=+1;	
 				
+				#check for collision with platforms
+				for platform in platform_group:
+					#collision in the x direction
+					if platform.rect.colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+						dx = 0
+					#collision in the y direction
+					if platform.rect.colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+						#check if below platform
+						if abs((self.rect.top + dy) - platform.rect.bottom) < col_thresh:
+							self.vel_y = 0
+							dy = platform.rect.bottom - self.rect.top
+						#check if above platform
+						elif abs((self.rect.bottom + dy) - platform.rect.top) < col_thresh:
+							self.rect.bottom = platform.rect.top - 1
+							self.in_air = False
+							dy = 0
+						#move sideways with the platform
+						if platform.move_x != 0:
+							self.rect.x += platform.move_direction
 				#update player coordinates
 				self.rect.x+=dx
 				self.rect.y+=dy
@@ -236,7 +258,7 @@ class Player():
 				
 			#draw player onto screen
 			win.blit(self.image,self.rect)
-			pygame.draw.rect(win,(255,255,255),self.rect,2)
+			
 
 			return game_over
 
@@ -294,6 +316,12 @@ class World():
 				if tile == 3:
 					slime= Enemy(col_count * tile_size, row_count * tile_size + 15)
 					slime_group.add(slime)
+				if tile == 4:
+					platform = Platform(col_count * tile_size, row_count * tile_size, 1, 0)
+					platform_group.add(platform)
+				if tile == 5:
+					platform = Platform(col_count * tile_size, row_count * tile_size, 0, 1)
+					platform_group.add(platform)
 				if tile == 6:
 					lava = Lava(col_count * tile_size, row_count * tile_size + (tile_size // 2))
 					lava_group.add(lava)
@@ -309,7 +337,7 @@ class World():
 	def draw(self):
 		for tile in self.tile_list:
 			win.blit(tile[0], tile[1])
-			pygame.draw.rect(win,(255,255,255),tile[1],2)
+			
 
 class Enemy(pygame.sprite.Sprite):
 	def __init__(self, x, y):
@@ -328,21 +356,34 @@ class Enemy(pygame.sprite.Sprite):
 			self.move_direction *= -1
 			self.move_counter *= -1
 
+
+class Platform(pygame.sprite.Sprite):
+	def __init__(self, x, y, move_x, move_y):
+		pygame.sprite.Sprite.__init__(self)
+		img = pygame.image.load('Data/sprites/Block/x .png')
+		self.image = pygame.transform.scale(img, (tile_size, tile_size // 2))
+		self.rect = self.image.get_rect()
+		self.rect.x = x
+		self.rect.y = y
+		self.move_counter = 0
+		self.move_direction = 1
+		self.move_x = move_x
+		self.move_y = move_y
+
+
+	def update(self):
+		self.rect.x += self.move_direction * self.move_x
+		self.rect.y += self.move_direction * self.move_y
+		self.move_counter += 1
+		if abs(self.move_counter) > 50:
+			self.move_direction *= -1
+			self.move_counter *= -1
+
 class Lava(pygame.sprite.Sprite):
 	def __init__(self, x, y):
 		pygame.sprite.Sprite.__init__(self)
 		img = pygame.image.load('Data/sprites/Characters/E/lava.png')
 		self.image = pygame.transform.scale(img, (tile_size, tile_size // 2))
-		self.rect = self.image.get_rect()
-		self.rect.x = x
-		self.rect.y = y
-
-
-class Exit(pygame.sprite.Sprite):
-	def __init__(self, x, y):
-		pygame.sprite.Sprite.__init__(self)
-		img = pygame.image.load('Data/sprites/exit/1.png')
-		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
 		self.rect = self.image.get_rect()
 		self.rect.x = x
 		self.rect.y = y
@@ -355,11 +396,23 @@ class Coin(pygame.sprite.Sprite):
 		self.image = pygame.transform.scale(img, (tile_size//2, tile_size // 2))
 		self.rect = self.image.get_rect()
 		self.rect.center = (x,y)
+
+class Exit(pygame.sprite.Sprite):
+	def __init__(self, x, y):
+		pygame.sprite.Sprite.__init__(self)
+		img = pygame.image.load('Data/sprites/exit/1.png')
+		self.image = pygame.transform.scale(img, (tile_size, int(tile_size * 1.5)))
+		self.rect = self.image.get_rect()
+		self.rect.x = x
+		self.rect.y = y
+
+
 		
 
 #main
 
-slime_group=pygame.sprite.Group()   
+slime_group=pygame.sprite.Group()  
+platform_group=pygame.sprite.Group()
 lava_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 coin_group = pygame.sprite.Group()
@@ -417,6 +470,7 @@ while run:
 
 			if game_over == 0:
 				slime_group.update()
+				platform_group.update()
 				if pygame.sprite.spritecollide(player,coin_group,True):
 					coin_fx.play()
 					score+=1
@@ -424,6 +478,7 @@ while run:
 
 
 			slime_group.draw(win)
+			platform_group.draw(win)
 			lava_group.draw(win)
 			coin_group.draw(win)
 			exit_group.draw(win)
