@@ -34,3 +34,4 @@ class TestResetLevel(unittest.TestCase):
         self.assertEqual(len(coin_group), 0)
         self.assertEqual(len(exit_group), 0)
 
+
