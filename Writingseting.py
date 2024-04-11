@@ -2,7 +2,7 @@ import pygame
 from Gameseting import*
 pygame.init()
 #writing setup
-font_score=pygame.font.SysFont('Pokemon GB',30 )
+font_score=pygame.font.SysFont('swiss',30 )
 font=pygame.font.SysFont('Bauhaus 93',70)
 font_menu=pygame.font.SysFont('lucidasanstypewriterregular',40 )
 black=(00,00,00)
