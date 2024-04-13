@@ -1,5 +1,6 @@
 import unittest
-from  EnemyClasses import *
+from EnemyClasses import *
+
 class TestEnemy(unittest.TestCase):
 
     def test_enemy_movement(self):
@@ -18,3 +19,6 @@ class TestEnemy(unittest.TestCase):
 
         # Assert enemy moved to the left
         self.assertLess(enemy.rect.x, 100)
+
+if __name__=='_main_':
+    unittest.main()
